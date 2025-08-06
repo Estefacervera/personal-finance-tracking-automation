@@ -1,0 +1,531 @@
+{
+  "name": "Follow Financial",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {
+          "labelIds": [
+            "INBOX"
+          ],
+          "sender": "alertasynotificaciones@notificacionesbancolombia.com"
+        }
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -304,
+        -48
+      ],
+      "id": "132e32b3-4cb1-4c4e-b112-df705394f35e",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "7insLa1qF7lePqhk",
+          "name": "Gmail account Personal"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "messageId": "={{ $json.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -96,
+        -48
+      ],
+      "id": "aa1495bf-2909-45d7-8963-e8ddfda41700",
+      "name": "Get a message",
+      "webhookId": "7b8d7d40-2d59-4062-a441-416666e1afdc",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "7insLa1qF7lePqhk",
+          "name": "Gmail account Personal"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=eres un asesor y asistente financiero, vas a leer los mensajes que llegan confirmando transacciones, pagos o movimientos de la cuenta principal de ahorros, pagos con tarjetas de credito etc, y vas a analizar de acuerdo al mensaje y al contexto, si es un ingreso que recibi en la cuenta, o es un pago que salio de mi cuennta o pago con tarjetas de credito o debito{{ $json.snippet }}.\n\nLa respuesta va a tener los siguientes items\nTipo de transaccion: Ingreso, Pago o Gasto\nMedio de pago: Transferencia, Tarjeta debito, tarjeta credito\nEstablecimiento al cual se realizó el pago: Si es Uber, un supermercado, o el nombre del establecimiento al que se hizo el pago\nValor: si es un ingreso ponerlo con \"+\" y el valor del movimiento, si es un gasto o pago ponerlo con \"-\"\ncategoria: vamos a tener diferentes categorias para los gastos y pagos: gastos del hogar (No incluye supermercado, no pagos en rappi o apps de domicilios) + servicios publicos, pago de internet\n-transporte: incluye todo por concepto de pagos de ubers o en establecimientos como gasolineras o estaciones de servicio, ejemplo TEXACO, TERPEL, PRIMAX\n- Domicilios y comida afuera. Incluye restaurantes, pagos en la app de rappi, heladerias,lugares como crepes and waffles, pigasus, chef burger\n-Supermercado: Todo lo que sea compras en supermercado, que no sea en rappi, ejemplo la vaquita, merca reyes, carulla, el euro, etc. \n-Suscripciones: concepto de netflix, spotify, canva, capcut, y pagos de google play se consideran suscripciones\n- Ropa y Ocio: salidas a cine, compras en establecimientos de ropa\n-Pago de cuotas de creditos o tarjetas de credito: esta categoria se llama Pagos Bancos.\n- Medicamentos y Salud: por ejemplo suplementos como proteinas, omega 3, fluoxetina, trazondona, en farmacias como pasteur, droguerias alemana etc. Tambien pagos de copagos en la eps sura y el gimnasio action black\nsi no estas seguro de la categoria puedes ponerlo en \"otros\"\nA veces el banco envia correos informativos, si es un correo informativo de algun cambio, algun acceso a mi cuenta, y no tiene un valor claro, ponlo en categoria informativa\n\nSiempre que se haga un pago por 1.150.000 al SENA SERVICIO NACIONAL DE APRENDIZAJE, es el pago de vivienda, se pone concepto Gastos Hogar\nSi hay un concepto de retiro de cajero, se pone categoria retiro efectivo para diferenciar y agrupar todos los retiros de efectivo\n\nDevuélveme **solo** un objeto JSON con esta estructura:\n\n{\n  \"Fecha\":{{ $json.fechaMovimiento }}\n  \"tipoTransaccion\": \"Ingreso\" | \"Pago\" | \"Gasto\",\n  \"medioPago\": \"Transferencia\" | \"Tarjeta débito\" | \"Tarjeta crédito\",\n  \"establecimiento\": \"Nombre del comercio o app\",\n  \"valor\": \"+10000\" | \"-12345\",\n  \"categoria\": \"Transporte\" | \"Domicilios y comida afuera\" | \"Ropa y Ocio\" | \"Gastos del hogar\" | \"Servicios públicos\" | \"Internet\" | \"Pagos Bancos\" | \"Medicamentos y Salud\" | \"Otros\"\n}",
+              "role": "system"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        272,
+        -64
+      ],
+      "id": "eefbe89b-24b6-47f1-8f8c-7bb43b968d66",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "NOP8ZYZ8RC9N5pqc",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const timestamp = parseInt($json.internalDate);\nconst fecha = new Date(timestamp).toISOString().split(\"T\")[0]; // Resultado: \"2025-09-30\"\n\nreturn {\n  json: {\n    ...$json,\n    fechaMovimiento: fecha  // agrega la fecha al JSON original\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        112,
+        -48
+      ],
+      "id": "35855949-c114-48df-81e4-9432396dd010",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "jsCode": "const parsed = JSON.parse($json.message.content);\nreturn [{ json: parsed }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        608,
+        -112
+      ],
+      "id": "9044e571-ba38-4ea9-8d72-5cc943862714",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a39f4b26-6e6a-4362-b4d2-6a42b49d392b",
+              "name": "Fecha",
+              "value": "={{ $json.Fecha }}",
+              "type": "string"
+            },
+            {
+              "id": "c9e567cd-b8b2-4b0b-8f0c-ae58dc4ff0a4",
+              "name": "tipoTransaccion",
+              "value": "={{ $json.tipoTransaccion }}",
+              "type": "string"
+            },
+            {
+              "id": "0193c288-f2f5-46cf-a255-7165b98046c0",
+              "name": "medioPago",
+              "value": "={{ $json.medioPago }}",
+              "type": "string"
+            },
+            {
+              "id": "c7f3c906-6567-4afa-a61c-99dcf732b84f",
+              "name": "establecimiento",
+              "value": "={{ $json.establecimiento }}",
+              "type": "string"
+            },
+            {
+              "id": "1714588b-466c-4326-83ef-e9479007af2a",
+              "name": "valor",
+              "value": "={{ $json.valor }}",
+              "type": "string"
+            },
+            {
+              "id": "fb6189be-af50-4e04-ad47-78d0d92e4471",
+              "name": "categoria",
+              "value": "={{ $json.categoria }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        800,
+        -176
+      ],
+      "id": "206077d3-1c9c-471e-af79-459a5a58421d",
+      "name": "Select Columns"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1YgET35OGYn3XUwXoMpzXYS8hCqQoWzQdUloTLDeM0k4",
+          "mode": "list",
+          "cachedResultName": "Tracking Financial Movements",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1YgET35OGYn3XUwXoMpzXYS8hCqQoWzQdUloTLDeM0k4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1YgET35OGYn3XUwXoMpzXYS8hCqQoWzQdUloTLDeM0k4/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Fecha Movimiento": "={{ $json.Fecha }}",
+            "Tipo Transaccion": "={{ $json.tipoTransaccion }}",
+            "medio de pago": "={{ $json.medioPago }}",
+            "establecimiento": "={{ $json.establecimiento }}",
+            "valor": "={{ $json.valor }}",
+            "Categoria": "={{ $json.categoria }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Fecha Movimiento",
+              "displayName": "Fecha Movimiento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Tipo Transaccion",
+              "displayName": "Tipo Transaccion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "medio de pago",
+              "displayName": "medio de pago",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "establecimiento",
+              "displayName": "establecimiento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "valor",
+              "displayName": "valor",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Categoria",
+              "displayName": "Categoria",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        768,
+        -32
+      ],
+      "id": "c45bc9b5-f3f7-4deb-9190-579c10284b76",
+      "name": "Organizar Archivo",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "tm1IrT6br7nXyeKG",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Get a message').item.json.id }}",
+        "labelIds": [
+          "Label_1296663650443532067"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1312,
+        144
+      ],
+      "id": "d2f55bed-0d83-4048-a1ad-7fc9e03dbeec",
+      "name": "Add label to message",
+      "webhookId": "6b36d5ab-5e69-4f21-8bb1-2d4b7dff3abe",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "7insLa1qF7lePqhk",
+          "name": "Gmail account Personal"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "0828c3c1-b675-4b26-9c79-7aef7e969f95",
+              "leftValue": "={{ $json['Fecha Movimiento'] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "dateTime",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        848,
+        192
+      ],
+      "id": "93b2dd92-cdf3-42fc-b51b-542774bb32a3",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"Status\": \"OK\"\n  \n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1088,
+        128
+      ],
+      "id": "93a7f732-2bc2-4a5a-8ac4-5b68928e0bce",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "sendTo": "estefaniacg1995@gmail.com",
+        "subject": "Error en inserción registro Banking ",
+        "message": "Revisar Flujo de automatizacion registros",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1088,
+        352
+      ],
+      "id": "59fc95ed-00a2-4c84-a928-bf0b46578ecc",
+      "name": "Send a message",
+      "webhookId": "1f50de65-1c29-45f6-be02-d6e32ab600e0",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "7insLa1qF7lePqhk",
+          "name": "Gmail account Personal"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "removeLabels",
+        "messageId": "={{ $json.id }}",
+        "labelIds": [
+          "INBOX",
+          "UNREAD"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1520,
+        144
+      ],
+      "id": "085f0e4b-7932-4ef6-acc3-ad39da0f5b0a",
+      "name": "Remove label from message",
+      "webhookId": "bab65715-d670-4730-8c21-a07dcf8eecc6",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "7insLa1qF7lePqhk",
+          "name": "Gmail account Personal"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a message": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Select Columns",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Columns": {
+      "main": [
+        [
+          {
+            "node": "Organizar Archivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Organizar Archivo": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add label to message": {
+      "main": [
+        [
+          {
+            "node": "Remove label from message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        []
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Add label to message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "ab5e619e-3b36-45b7-93f9-b9021ccb33e5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5ef65c0bf72284525dd70e6f6c58978744030e215203606c922a17bef467b647"
+  },
+  "id": "ZFYBMLz4UJoJmq93",
+  "tags": []
+}
